@@ -1,0 +1,13 @@
+{
+	"regression_algorithm": "neural_network",
+	"monotonic": true,
+	"forced_features": [],
+	"cross_validation": "k_fold_5",
+	"stopping_time":100,
+	"selection_method": "roulette",
+	"feature_selection": "sequential_floating",
+	"preprocessing": "standard",
+	"scoring": "d2_rmse+adj_rsqrd",
+	"exclude_years": [],
+	"num_output_models": 3
+}

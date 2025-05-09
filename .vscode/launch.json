@@ -1,0 +1,115 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {"name":"Python Debugger: Current File","type":"debugpy","request":"launch","program":"${file}","console":"integratedTerminal"},
+
+        {
+            "name": "DEBUG: Tests - Uncertainty",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\tests\\tests_uncertainty_estimation\\test_graph_gen.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}\\src",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            }
+        },
+        {
+            "name": "DEBUG: Tests - Scoring",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\tests\\tests_scoring\\test_d2_rmse.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}\\src",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            }
+        },
+        {
+            "name": "DEBUG: Tests - Preprocessing",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\tests\\tests_preprocessing\\test_standard_preprocessing.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}\\src",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            }
+        },
+        {
+            "name": "DEBUG: Tests - Data Parsing",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\tests\\tests_data_parsing\\test_m4_rc_file.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}\\src",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            }
+        },
+        {
+            "name": "DEBUG: Tests - Cross Validation",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\tests\\tests_cross_validation\\test_k_fold.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}\\src",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            }
+        },
+        {
+            "name": "DEBUG: Tests - Regression",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\tests\\tests_regression\\test_neural_net.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}\\src",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            }
+        },
+        {
+            "name": "DEBUG: Tests - Feature Selection",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\tests\\tests_feature_selection\\test_genetic.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}\\src",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            }
+        },
+        {
+            "name": "DEBUG: Tests - Cluster",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}\\tests\\tests_model_clustering\\test_distance.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}\\src",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            }
+        },
+        {
+            "name": "DEBUG: process_pipeline",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "cli\\process_pipeline.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            },
+            "args": [
+                "${workspaceFolder}/examples/example_1/pipeline.json",
+                "${workspaceFolder}/examples/example_1/input_data.txt",
+                "-o", "${workspaceFolder}/examples/example_1/output",
+                "-c"
+            ]
+        }
+    ]
+}
