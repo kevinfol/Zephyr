@@ -281,7 +281,11 @@ def process_pipeline(
         # Iterate thru the chromosomes and train the models
 
         # Parallelize the whole thing for maybe a significant speedup!
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        if regressor.USE_PARALLEL_PROCESSING:
+            executor_ = concurrent.futures.ProcessPoolExecutor
+        else:
+            executor_ = concurrent.futures.ThreadPoolExecutor
+        with executor_() as executor:
             proc_func = partial(
                 model_evaluation.process_chromosome,
                 pipeline_obj=pipeline_obj,
@@ -351,7 +355,7 @@ def process_pipeline(
         # set up any monotone constraints
         monotonic = pipeline_obj.get("monotonic", False)
         if isinstance(monotonic, bool):
-            monotone_constraints = [int(monotonic)] * X_chromosome.shape[1]
+            monotone_constraints = [monotonic] * X_chromosome.shape[1]
         else:
             monotone_constraints = [
                 input_data.feature_names.index(name) in monotonic for name in name_list

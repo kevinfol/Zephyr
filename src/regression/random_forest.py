@@ -42,6 +42,29 @@ class RandomForestRegression(GenericRegressor):
         self.monotonic = monotone_constraints
         self.regr.set_params(**{"monotonic_cst": [int(m) for m in self.monotonic]})
 
+    def has_zero_importance_predictors(self) -> bool:
+        """If any of the predictors have zero importance / effect on the output
+        of the model (e.g. zero-coefficient), then this function returns True,
+        otherwise it returns False. It is useful for filtering out models.
+
+        Returns:
+            bool: True if one or more predictors have no effect on the
+                model output. Otherwise, False
+        """
+        # Try a sensitivity analysis on each predictor to determine importance
+        means = np.mean(self.X, axis=0, keepdims=True)
+        mins = np.min(self.X, axis=0)
+        maxs = np.max(self.X, axis=0)
+        for input_num in range(self.X.shape[1]):
+            test = means.copy()
+            test[0, input_num] = maxs[input_num]
+            output = self.predict(test)
+            test[0, input_num] = mins[input_num]
+            output2 = self.predict(test)
+            if abs(output - output2) < 1e-5:
+                return True
+        return False
+
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """Create the model parameters for the brute force model lookup table.
 

@@ -29,6 +29,19 @@ class MultipleLinearRegression(GenericRegressor):
         """
         self.monotonic = monotone_constraints
 
+    def has_zero_importance_predictors(self) -> bool:
+        """If any of the predictors have zero importance / effect on the output
+        of the model (e.g. zero-coefficient), then this function returns True,
+        otherwise it returns False. It is useful for filtering out models.
+
+        Returns:
+            bool: True if one or more predictors have no effect on the
+                model output. Otherwise, False
+        """
+        if any(np.abs(self.coef_) < 1e-7):
+            return True
+        return False
+
     def fit(self, X: np.ndarray, y: np.ndarray) -> None:
         """Compute the model coefficients and intercept that minimize the
         least squares error.

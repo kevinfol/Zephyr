@@ -58,6 +58,19 @@ class GenericFeatureSelector:
         # List of chromosomes
         chromosomes = self.chromosome_scoring_table.keys()
 
+        # Best score
+        scores = list(self.chromosome_scoring_table.values())
+        if scores != []:
+            best_score = sorted(
+                scores,
+                key=lambda s: s[0],
+                reverse=True,
+            )[
+                0
+            ][0]
+        else:
+            best_score = 0
+
         # Compute total length
         total_num = (2**self.num_features) - 1
 
@@ -106,6 +119,10 @@ class GenericFeatureSelector:
 
             if row == 0:
                 s += "Chromosomes evaluated: "
+            elif row == 1:
+                s += f"{len(chromosomes):>07} / {total_num:>07}      "
+            elif row == 2:
+                s += f"Best: {best_score:+2.6f}        "
             else:
                 s += "                       "
             for position in range(12):

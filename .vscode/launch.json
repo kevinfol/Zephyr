@@ -32,7 +32,7 @@
             "name": "DEBUG: Tests - Preprocessing",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}\\tests\\tests_preprocessing\\test_standard_preprocessing.py",
+            "program": "${workspaceFolder}\\tests\\tests_preprocessing\\test_min_max.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}\\src",
             "env": {

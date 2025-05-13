@@ -1,6 +1,6 @@
 class GenericRegressor:
 
-    REQUIRES_TORCH = False
+    USE_PARALLEL_PROCESSING = False
 
     class EmptyRegression:
         def set_params(self, *args, **kwargs):

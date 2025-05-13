@@ -48,10 +48,13 @@ def create_uncertainty_onnx_graph(
         boxcox_log_rmse = np.nan
     else:
         #  Compute the Box-Cox transformed RMSE
-        boxcox_predictions, boxcox_lambda = boxcox(x=predictions)
-        boxcox_observations = boxcox(x=observations, lmbda=boxcox_lambda)
+        boxcox_predictions, boxcox_lambda = boxcox(x=predictions.astype(np.float64))
+        boxcox_observations = boxcox(
+            x=observations.astype(np.float64), lmbda=boxcox_lambda
+        )
         boxcox_log_rmse = calc_rmse(
-            predicted=boxcox_predictions, observed=boxcox_observations
+            predicted=boxcox_predictions.astype(np.float32),
+            observed=boxcox_observations.astype(np.float32),
         )
 
         # Check if we should do a log-transform instead of a BC transform
@@ -91,14 +94,14 @@ def create_uncertainty_onnx_graph(
                 name="boxcox_lambda",
                 data_type=TensorProto.FLOAT,
                 dims=[1],
-                vals=[boxcox_lambda],
+                vals=[np.float32(boxcox_lambda)],
             ),
             # Inverse BoxCox Lambda
             make_tensor(
                 name="inverse_boxcox_lambda",
                 data_type=TensorProto.FLOAT,
                 dims=[1],
-                vals=[1 / boxcox_lambda],
+                vals=[1 / np.float32(boxcox_lambda)],
             ),
             # Constant value of '1.0'
             make_tensor(
@@ -158,7 +161,7 @@ def create_uncertainty_onnx_graph(
                 name="boxcox_lambda",
                 data_type=TensorProto.FLOAT,
                 dims=[1],
-                vals=[boxcox_lambda],
+                vals=[np.float32(boxcox_lambda)],
             ),
         ]
     )

@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from src.data_parsing import InputData
 from sklearn.model_selection import ParameterGrid
 from src import scoring
@@ -19,6 +20,11 @@ def process_chromosome(
     y: np.ndarray,
     years: np.ndarray,
 ):
+
+    # Make copies for the subprocess of all the relevant mutable objects
+    regressor = copy.deepcopy(regressor)
+    preprocessor = copy.deepcopy(preprocessor)
+    cross_validator = copy.deepcopy(cross_validator)
 
     # Check if we already know the score for this chromosome (if so, skip)
     if chromosome in feature_selector.chromosome_scoring_table.keys():
@@ -67,6 +73,38 @@ def process_chromosome(
         cv_predictions = np.full_like(y_chromosome, np.nan)
         cv_observations = np.full_like(y_chromosome, np.nan)
 
+        # set up any monotone constraints
+        monotonic = pipeline_obj.get("monotonic", False)
+        if isinstance(monotonic, bool):
+            monotone_constraints = [monotonic] * X_chromosome.shape[1]
+        else:
+            monotone_constraints = [
+                input_data.feature_names.index(name) in monotonic for name in name_list
+            ]
+
+        if pipeline_obj.get("preprocessing", "standard") == "principal_components":
+            # the number of PC's could be less than the number of predictors
+            # NOTE: !! monotone constraints don't really work well for PC's .
+            # you have to make the assumption that the first PC is "wetness", and
+            # then make sure that one is monotonic, but maybe not the other PCs?
+            # Either way, if you trace it all the way back to the original predictor
+            # variables, there's no way to ensure that an increase in the original
+            # predictor variable corresponds to an increase in the PC or the prediction.
+            # For MLR, Ridge, and other coef/intercept methods, I guess you could compute
+            # the actual coefficients for the original input predictors, and make sure they
+            # are positive, but that would be cumbersome and not really in the spirit of
+            # principal components. ... rant over ...
+
+            monotone_constraints = [any(monotone_constraints)] + [False] * (
+                params["possible_no_pcs"] - 1
+            )
+
+        regressor.set_monotonic(monotone_constraints)
+
+        # fit the model with the selected params
+        if "" not in params.keys():
+            regressor.set_params(**params)
+
         # Iterate thru the CV and generate the cv_predictions for scoring
         for test_set, train_set in cross_validator(X_chromosome.shape[0]):
             X_train, y_train = X_chromosome[train_set], y_chromosome[train_set]
@@ -80,55 +118,31 @@ def process_chromosome(
                 preprocessor.transform(X_test),
             )
 
-            # set up any monotone constraints
-            monotonic = pipeline_obj.get("monotonic", False)
-            if isinstance(monotonic, bool):
-                monotone_constraints = [monotonic] * X_chromosome.shape[1]
-            else:
-                monotone_constraints = [
-                    input_data.feature_names.index(name) in monotonic
-                    for name in name_list
-                ]
-
-            if pipeline_obj.get("preprocessing", "standard") == "principal_components":
-                # the number of PC's could be less than the number of predictors
-                # NOTE: !! monotone constraints don't really work well for PC's .
-                # you have to make the assumption that the first PC is "wetness", and
-                # then make sure that one is monotonic, but maybe not the other PCs?
-                # Either way, if you trace it all the way back to the original predictor
-                # variables, there's no way to ensure that an increase in the original
-                # predictor variable corresponds to an increase in the PC or the prediction.
-                # For MLR, Ridge, and other coef/intercept methods, I guess you could compute
-                # the actual coefficients for the original input predictors, and make sure they
-                # are positive, but that would be cumbersome and not really in the spirit of
-                # principal components. ... rant over ...
-
-                monotone_constraints = [any(monotone_constraints)] + [False] * (
-                    params["possible_no_pcs"] - 1
-                )
-
-            regressor.set_monotonic(monotone_constraints)
-
-            # fit the model with the selected params
-            if "" not in params.keys():
-                regressor.set_params(**params)
+            # Fit the model
             regressor.fit(X_train_preprocessed, y_train)
 
             # Make the cv_predictions
             cv_observations[test_set] = y_test
             cv_predictions[test_set] = regressor.predict(X_test_preprocessed)
 
-        # Evaluate the score
-        scores = list(
-            map(
-                lambda s: s(
-                    predicted=cv_predictions,
-                    observed=cv_observations,
-                    n_feats=X_chromosome.shape[1],
-                ),
-                scorer,
+        # Fit the whole mode to check for non-importance predictors
+        preprocessor.fit(X_chromosome)
+        X_preprocessed = preprocessor.transform(X_chromosome)
+        regressor.fit(X_preprocessed, y_chromosome)
+        if regressor.has_zero_importance_predictors():
+            scores = list(map(lambda s: -np.inf, scorer))
+        else:
+            # Evaluate the score
+            scores = list(
+                map(
+                    lambda s: s(
+                        predicted=cv_predictions,
+                        observed=cv_observations,
+                        n_feats=X_chromosome.shape[1],
+                    ),
+                    scorer,
+                )
             )
-        )
         if scoring.score_compare(scores, best_scores):
             best_scores = scores
             best_params = params

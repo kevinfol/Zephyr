@@ -1,6 +1,7 @@
 from .principal_components import PrincipalComponentsPreprocessing
 from .standard import StandardPreprocessing
 from .noop import NoPreprocessing
+from .min_max import MinMaxPreprocessing
 
 
 def get(name: str = "none") -> object:
@@ -19,3 +20,5 @@ def get(name: str = "none") -> object:
         return StandardPreprocessing
     elif name == "none":
         return NoPreprocessing
+    elif name == "minmax":
+        return MinMaxPreprocessing

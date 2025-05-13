@@ -156,14 +156,22 @@ class GeneticSelection(GenericFeatureSelector):
 
             for scorer in range(len(self.scores[0])):
 
-                scorer_probs = [
-                    self.scores[i][scorer] / sum(map(lambda s: s[scorer], self.scores))
-                    for i in range(self.population)
-                ]
-                probabilities = [
-                    p + (ps / len(self.scores[0]))
-                    for p, ps in zip(probabilities, scorer_probs)
-                ]
+                sum_scores = sum(map(lambda s: s[scorer], self.scores))
+
+                for j in range(self.population):
+
+                    score = self.scores[j][scorer]
+                    if score < 0:
+                        score = 0
+
+                    scorer_prob = score / sum_scores
+                    probabilities[j] += scorer_prob
+
+            # Check for all-zero probs. If so, make all chromosomes equally likely
+            if not any(probabilities):
+                probabilities = [1.0 for p in probabilities]
+
+            probabilities = [p / sum(probabilities) for p in probabilities]
 
             cumulative_probs = [
                 sum(probabilities[: i + 1]) for i in range(self.population)
@@ -295,7 +303,7 @@ class GeneticSelection(GenericFeatureSelector):
         self.current_chromosomes = children
         self.current_generation += 1
 
-        # dont allow any empty chromosomes:
+        # dont allow any empty chromosomes
         # replace empty chromosomes with a random chromosome
         while 0 in self.current_chromosomes:
             self.current_chromosomes[self.current_chromosomes.index(0)] = (
