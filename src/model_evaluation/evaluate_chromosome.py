@@ -105,33 +105,34 @@ def process_chromosome(
         if "" not in params.keys():
             regressor.set_params(**params)
 
-        # Iterate thru the CV and generate the cv_predictions for scoring
-        for test_set, train_set in cross_validator(X_chromosome.shape[0]):
-            X_train, y_train = X_chromosome[train_set], y_chromosome[train_set]
-            X_test, y_test = X_chromosome[test_set], y_chromosome[test_set]
-
-            # Preprocess the X data
-            preprocessor.num_components = params["possible_no_pcs"]
-            preprocessor.fit(X_train)
-            X_train_preprocessed, X_test_preprocessed = (
-                preprocessor.transform(X_train),
-                preprocessor.transform(X_test),
-            )
-
-            # Fit the model
-            regressor.fit(X_train_preprocessed, y_train)
-
-            # Make the cv_predictions
-            cv_observations[test_set] = y_test
-            cv_predictions[test_set] = regressor.predict(X_test_preprocessed)
-
         # Fit the whole mode to check for non-importance predictors
         preprocessor.fit(X_chromosome)
         X_preprocessed = preprocessor.transform(X_chromosome)
         regressor.fit(X_preprocessed, y_chromosome)
         if regressor.has_zero_importance_predictors():
             scores = list(map(lambda s: -np.inf, scorer))
+
         else:
+            # Iterate thru the CV and generate the cv_predictions for scoring
+            for test_set, train_set in cross_validator(X_chromosome.shape[0]):
+                X_train, y_train = X_chromosome[train_set], y_chromosome[train_set]
+                X_test, y_test = X_chromosome[test_set], y_chromosome[test_set]
+
+                # Preprocess the X data
+                preprocessor.num_components = params["possible_no_pcs"]
+                preprocessor.fit(X_train)
+                X_train_preprocessed, X_test_preprocessed = (
+                    preprocessor.transform(X_train),
+                    preprocessor.transform(X_test),
+                )
+
+                # Fit the model
+                regressor.fit(X_train_preprocessed, y_train)
+
+                # Make the cv_predictions
+                cv_observations[test_set] = y_test
+                cv_predictions[test_set] = regressor.predict(X_test_preprocessed)
+
             # Evaluate the score
             scores = list(
                 map(
@@ -143,6 +144,7 @@ def process_chromosome(
                     scorer,
                 )
             )
+
         if scoring.score_compare(scores, best_scores):
             best_scores = scores
             best_params = params

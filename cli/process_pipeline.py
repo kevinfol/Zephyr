@@ -24,8 +24,9 @@ from src import (
     uncertainty_estimation,
     model_clustering,
     model_evaluation,
+    misc_utils,
 )
-from datetime import datetime
+from random import randint, sample
 from onnx.compose import merge_graphs
 from onnx.helper import make_model, make_opsetid
 
@@ -243,6 +244,7 @@ def process_pipeline(
     mask = [
         year not in pipeline_obj.get("exclude_years", []) for year in input_data.years
     ]
+    names = input_data.feature_names
     X = input_data.feature_data[mask]
     y = input_data.target_data[mask]
     years = input_data.years[mask]
@@ -262,6 +264,32 @@ def process_pipeline(
     # each chromosome so that we don't need to re-run cross validation
     # when we re-train the best models later.
     cv_results_table = {}
+
+    # Check whether we should pre-seed.
+    if len(names) >= 10:
+
+        # Do a simple feature-wise correlation to find the best N/2 correlated
+        # features
+        corrs = []
+
+        for feat in names:
+            x_ = X[feat]
+            r = np.corrcoef(x_, y)[0, 1]
+            corrs.append((feat, r, names.index(feat)))
+
+        corrs = sorted(corrs, key=lambda r: r[1], reverse=True)[: len(names) // 2]
+
+        # create 10 random initial seeds
+        seeds = []
+        while len(seeds) < 10:
+            k = randint(1, len(corrs))
+            s = sample(corrs, k)
+            val = sum([2 ** r[2] for r in s])
+            if val not in seeds:
+                seeds.append(val)
+        feature_selector.preseed(seeds)
+        if feature_selector.is_seeded:
+            print(f"Preseeded feature selector with {len(seeds)} seeds\n")
 
     # Iterate through feature selection
     iteration_tracker = 0
@@ -283,8 +311,10 @@ def process_pipeline(
         # Parallelize the whole thing for maybe a significant speedup!
         if regressor.USE_PARALLEL_PROCESSING:
             executor_ = concurrent.futures.ProcessPoolExecutor
-        else:
+        elif regressor.USE_THREADING:
             executor_ = concurrent.futures.ThreadPoolExecutor
+        else:
+            executor_ = misc_utils.DummyExecutor
         with executor_() as executor:
             proc_func = partial(
                 model_evaluation.process_chromosome,
@@ -422,7 +452,7 @@ def process_pipeline(
         )
 
         # Save the individual model ONNX to the output directory
-        onnx_filename = output_dir_path + "/" + str(uuid4())[::2] + ".onnx"
+        onnx_filename = output_dir_path + str(uuid4())[::2] + ".onnx"
         with open(onnx_filename, "wb") as onnx_write_file:
             onnx_model = make_model(
                 model_graph,

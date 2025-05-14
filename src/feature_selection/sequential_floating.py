@@ -1,6 +1,6 @@
 import time
 from itertools import filterfalse
-from random import randint
+from random import randint, choice
 from . import GenericFeatureSelector
 
 
@@ -62,6 +62,10 @@ class SequentialFloatingSelection(GenericFeatureSelector):
         # keep track of chromosome scores
         self.scores = [None for _ in range(self.num_features)]
 
+        # Seeded?
+        self.is_seeded = False
+        self.seeds_used = 0
+
         return
 
     def is_still_running(self) -> bool:
@@ -102,6 +106,25 @@ class SequentialFloatingSelection(GenericFeatureSelector):
         self.set_new_starting_chromosome()
         return
 
+    def preseed(self, chromosomes: list[int]) -> None:
+        """If there are a lot of candidate predictors, we may need to start the
+        feature selector off in a known good place so that it doesn't iterate
+        through a bunch of bad solutions before finding a decent good one.
+
+        Preseeding sets the initial chromosomes for iterative feature selectors
+        to a known set of good chromosomes.
+
+        Args:
+            chromosomes (list[int]): A list of known decent chromosomes
+                to start the iterative selector with.
+        """
+        self.seeds = [
+            chromosome | self.forced_chromosome_number for chromosome in chromosomes
+        ]
+        self.starting_chromosome = choice(self.seeds)
+        self.seeds.pop(self.seeds.index(self.starting_chromosome))
+        self.is_seeded = True
+
     def set_new_starting_chromosome(self) -> None:
         """Uses the current scores to set the new starting chromosome,
         or if the current starting chromosome is the best, randomly generate
@@ -110,9 +133,15 @@ class SequentialFloatingSelection(GenericFeatureSelector):
         sorted_scores = sorted(self.scores, reverse=True)
         best_score_idx = self.scores.index(sorted_scores[0])
         if best_score_idx == 0:
-            self.starting_chromosome = (
-                randint(1, self.max_chromosome_number) | self.forced_chromosome_number
-            )
+            if self.is_seeded and self.seeds_used < len(self.seeds):
+                self.starting_chromosome = choice(self.seeds)
+                self.seeds.pop(self.seeds.index(self.starting_chromosome))
+                self.seeds_used += 1
+            else:
+                self.starting_chromosome = (
+                    randint(1, self.max_chromosome_number)
+                    | self.forced_chromosome_number
+                )
         else:
             self.starting_chromosome = self.current_chromosomes[best_score_idx]
 

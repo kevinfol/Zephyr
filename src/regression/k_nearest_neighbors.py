@@ -17,6 +17,7 @@ class NearestNeighborsRegression(GenericRegressor):
     """
 
     PARAM_GRID = {"n_neighbors": [3, 5]}
+    USE_THREADING = True
 
     def __init__(self, *args, **kwargs) -> None:
         """Class Constructor, no arguments are expected."""

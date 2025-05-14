@@ -17,24 +17,22 @@ from onnx import numpy_helper, TensorProto, GraphProto, load
 
 
 class NeuralNet(torch.nn.Module):
-    def __init__(self, n_features: int, num_hidden_layers: int):
+    def __init__(self, n_features: int, num_hidden_layers: int, activation_fn="ReLU"):
         super().__init__()
         self.n_features = n_features
-        if n_features == 0:
-            print("WHOA")
-            input()
         self.num_hidden_layers = num_hidden_layers
         self.monotone_constraint = None
         self.learning_rate = 0.1
+        self.activation_fn = getattr(torch.nn, activation_fn)
         hidden_layer_size = int(np.ceil(n_features / 2))
         hidden_layer_size = max(hidden_layer_size, 2)
 
         layers = [
             torch.nn.Linear(n_features, hidden_layer_size),
-            torch.nn.ReLU(),
+            self.activation_fn(),
         ]
-        layers[0].weight.data.fill_(1)
-        layers[0].bias.data.fill_(0.01)
+        # layers[0].weight.data.fill_(1)
+        # layers[0].bias.data.fill_(0.01)
 
         for n in range(1, num_hidden_layers + 1):
             if n == num_hidden_layers:
@@ -43,31 +41,39 @@ class NeuralNet(torch.nn.Module):
                         torch.nn.Linear(hidden_layer_size, 1),
                     ]
                 )
-                layers[-1].weight.data.fill_(1)
-                layers[-1].bias.data.fill_(0.01)
+                # layers[-1].weight.data.fill_(1)
+                # layers[-1].bias.data.fill_(0.01)
             else:
                 layers.extend(
                     [
                         torch.nn.Linear(hidden_layer_size, hidden_layer_size),
-                        torch.nn.ReLU(),
+                        self.activation_fn(),
                     ]
                 )
-                layers[-2].weight.data.fill_(1)
-                layers[-2].bias.data.fill_(0.01)
+                # layers[-2].weight.data.fill_(1)
+                # layers[-2].bias.data.fill_(0.01)
 
         self.linear_stack = torch.nn.Sequential(*layers)
 
     def get_params(self, *args, **kwargs):
+
         return {
             "num_hidden_layers": self.num_hidden_layers,
             "learning_rate": self.learning_rate,
+            "activation_fn": self.activation_fn.__name__,
         }
 
     def set_params(self, **kwargs):
         mc = self.monotone_constraint
         if "num_hidden_layers" in kwargs.keys():
-            self.__init__(self.n_features, kwargs["num_hidden_layers"])
-            print(len(self.linear_stack))
+            if "activation_fn" in kwargs.keys():
+                self.__init__(
+                    self.n_features,
+                    kwargs["num_hidden_layers"],
+                    kwargs["activation_fn"],
+                )
+            else:
+                self.__init__(self.n_features, kwargs["num_hidden_layers"])
 
         if "learning_rate" in kwargs.keys():
             self.learning_rate = kwargs["learning_rate"]
@@ -92,10 +98,19 @@ class NeuralNet(torch.nn.Module):
                         True
                     ] * layer.weight.data.shape[1]
 
+    def initialize_weights_and_biases(self):
+        self.linear_stack.apply(self.init_module_weights)
+
+    def init_module_weights(self, m):
+        if isinstance(m, torch.nn.Linear):
+            torch.nn.init.xavier_uniform_(m.weight)
+            m.bias.data.fill_(0.01)
+
 
 class NonNegClipper:
 
     def __call__(self, module):
+
         if hasattr(module, "weight"):
             if hasattr(module.weight, "monotonic_cols"):
                 monotonic_cols = module.weight.monotonic_cols
@@ -107,7 +122,11 @@ class NonNegClipper:
 class NeuralNetworkRegression(GenericRegressor):
     """Implements a multilayer perceptron neural network"""
 
-    PARAM_GRID = {"num_hidden_layers": [1, 3], "learning_rate": [0.1, 0.02]}
+    PARAM_GRID = {
+        "num_hidden_layers": [1, 2],
+        "learning_rate": [0.1],  # , 0.02],
+        "activation_fn": ["Mish", "Hardsigmoid"],
+    }
     USE_PARALLEL_PROCESSING = True
 
     def __init__(self, *args, **kwargs):
@@ -117,7 +136,7 @@ class NeuralNetworkRegression(GenericRegressor):
 
         self.regr.learning_rate = 0.1
         self.loss_function = torch.nn.MSELoss()
-        self.num_epochs = 3000
+        self.num_epochs = 5000
         self.non_neg_clipper = NonNegClipper()
         self.regr.apply(self.non_neg_clipper)
         self.early_stopping_pct = 0.025 / 100
@@ -162,40 +181,65 @@ class NeuralNetworkRegression(GenericRegressor):
         X = torch.from_numpy(X)  # torch.tensor(X, dtype=torch.float32)
         y = torch.from_numpy(y)  # torch.tensor(y, dtype=torch.float32)
 
-        optimizer = torch.optim.SGD(
-            self.regr.parameters(),
-            lr=self.regr.learning_rate,
-            # momentum=0.4,
-            # weight_decay=1.0,
-        )
-
-        # Make y variable into min-max version
-        # self.y_mean = torch.mean(y)
-        # self.y_std = torch.std(y)
-        # self.y_normed = (y - self.y_mean) / self.y_std
+        optimizer = torch.optim.Adam(self.regr.parameters(), lr=self.regr.learning_rate)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 500, 2 / 3)
+        initial_state_dict = scheduler.state_dict()
 
         self.y_min = torch.min(y)
         self.y_max = torch.max(y)
         self.y_proc = (y - self.y_min) / (self.y_max - self.y_min)
-
+        self.y_proc = self.y_proc.unsqueeze(-1)
         self.regr.train()
         last_loss = None
+
+        # Expectation is that there are a decent amount of local
+        # minima in the parameters search space. We'll need to
+        # monitor the loss and keep track of minima
+        best_loss = None
+        best_params = self.regr.state_dict()
+        patience_lim = self.num_epochs * 0.05
+        current_patience = 0
+
         for epoch in range(self.num_epochs):
 
             predictions = self.regr(X)
-            loss = self.loss_function(predictions, self.y_proc.unsqueeze(-1))
+            loss = self.loss_function(predictions, self.y_proc)
             loss_val = loss.item()
 
             loss.backward()
             optimizer.step()
             self.regr.apply(self.non_neg_clipper)
-            optimizer.zero_grad()
+            scheduler.step()
+            # optimizer.zero_grad()
+            for param in self.regr.parameters():
+                param.grad = None
 
+            # Check for plateau, if so: reset weights to try to find other minima
             if last_loss != None and epoch > self.num_epochs * 0.2:
                 pct = (last_loss - loss_val) / abs(loss_val)
-                if pct < self.early_stopping_pct:
-                    break
+                if pct < self.early_stopping_pct and current_patience > patience_lim:
+
+                    # Store loss and params if the loss is best
+                    if best_loss == None:
+                        best_loss = loss_val
+                        best_params = self.regr.state_dict()
+                    elif loss_val < best_loss:
+                        best_loss = loss_val
+                        best_params = self.regr.state_dict()
+
+                    # Reset model weights
+                    current_patience = 0
+                    scheduler.load_state_dict(initial_state_dict)
+                    last_loss = None
+                    self.regr.initialize_weights_and_biases()
+                    continue
+
             last_loss = loss_val
+            current_patience += 1
+
+        # load the best params
+        self.regr.load_state_dict(best_params)
+        last_loss = best_loss
 
         return
 

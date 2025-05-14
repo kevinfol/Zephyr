@@ -1,6 +1,6 @@
 import time
 from itertools import filterfalse
-from random import randint, random
+from random import randint, random, choice
 from . import GenericFeatureSelector
 from . import score_compare
 
@@ -85,6 +85,10 @@ class GeneticSelection(GenericFeatureSelector):
         # total number of possible combinations
         self.max_num_chromosomes = sum([1 for _ in all_chromosomes])
 
+        # Seeded?
+        self.is_seeded = False
+        self.seed_count = 0
+
     def is_still_running(self) -> bool:
         """Is the feature selector still in progress?
 
@@ -126,6 +130,35 @@ class GeneticSelection(GenericFeatureSelector):
             self.chromosome_scoring_table[self.current_chromosomes[i]] = score
 
         return
+
+    def preseed(self, chromosomes: list[int]) -> None:
+        """If there are a lot of candidate predictors, we may need to start the
+        feature selector off in a known good place so that it doesn't iterate
+        through a bunch of bad solutions before finding a decent good one.
+
+        Preseeding sets the initial chromosomes for iterative feature selectors
+        to a known set of good chromosomes.
+
+        Args:
+            chromosomes (list[int]): A known decent chromosome to start the iterative
+                selector with.
+        """
+        self.seeds = [
+            chromosome | self.forced_chromosome_number for chromosome in chromosomes
+        ]
+        self.is_seeded = True
+
+        self.current_chromosomes = []
+        for i in range(self.population):
+            if len(self.seeds) > 0:
+                self.current_chromosomes.append(choice(self.seeds))
+                self.seeds.pop(self.seeds.index(self.current_chromosomes[-1]))
+                self.seed_count += 1
+            else:
+                self.current_chromosomes.append(
+                    randint(1, self.max_chromosome_number)
+                    | self.forced_chromosome_number
+                )
 
     def initialize_population(self) -> None:
         """Create an initial popuplation of potential solutions. The initial population

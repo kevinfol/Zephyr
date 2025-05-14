@@ -1,6 +1,7 @@
 class GenericRegressor:
 
     USE_PARALLEL_PROCESSING = False
+    USE_THREADING = False
 
     class EmptyRegression:
         def set_params(self, *args, **kwargs):

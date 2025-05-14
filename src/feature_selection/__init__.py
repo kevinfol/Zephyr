@@ -80,13 +80,15 @@ class GenericFeatureSelector:
         if total_num > 512:
             divider = 8
         if total_num > 2048:
-            divider = 16
+            divider = int((total_num / 192) - ((total_num / 192)) % 4 + 4)
 
         # Number of total block characters (each block has 4 chromosomes)
-        total_length = (total_num // divider) + (1 if total_num % divider != 0 else 0)
+        total_length = int(
+            (total_num // divider) + (1 if total_num % divider != 0 else 0)
+        )
 
         # compute number of rows (12 blocks per row)
-        total_rows = total_length // 12 + (1 if total_length % 12 != 0 else 0)
+        total_rows = int(total_length // 12 + (1 if total_length % 12 != 0 else 0))
 
         # preprint
         if not skip_preprint:

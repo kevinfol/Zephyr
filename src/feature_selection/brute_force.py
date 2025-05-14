@@ -53,6 +53,9 @@ class BruteForceFeatureSelection(GenericFeatureSelector):
         self.num_features = num_features
         self.scores = [None for _ in range(self.num_features)]
 
+        # Seeded?
+        self.is_seeded = False
+
         return
 
     def is_still_running(self) -> bool:
@@ -77,6 +80,22 @@ class BruteForceFeatureSelection(GenericFeatureSelector):
         self.scores = scores
         for i, score in enumerate(scores):
             self.chromosome_scoring_table[self.current_chromosomes[i]] = score
+        return
+
+    def preseed(self, chromosomes: list[int]) -> None:
+        """If there are a lot of candidate predictors, we may need to start the
+        feature selector off in a known good place so that it doesn't iterate
+        through a bunch of bad solutions before finding a decent good one.
+
+        Preseeding sets the initial chromosomes for iterative feature selectors
+        to a known set of good chromosomes.
+
+        NOTE: unused in brute force selection.
+
+        Args:
+            chromosomes (list[int]): A known decent chromosome to start the iterative
+                selector with.
+        """
         return
 
     def next(self) -> list[int]:
