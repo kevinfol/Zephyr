@@ -127,7 +127,7 @@ class NeuralNetworkRegression(GenericRegressor):
         "learning_rate": [0.1],  # , 0.02],
         "activation_fn": ["Mish", "Hardsigmoid"],
     }
-    USE_PARALLEL_PROCESSING = True
+    # USE_PARALLEL_PROCESSING = True
 
     def __init__(self, *args, **kwargs):
         """_summary_"""
@@ -136,10 +136,10 @@ class NeuralNetworkRegression(GenericRegressor):
 
         self.regr.learning_rate = 0.1
         self.loss_function = torch.nn.MSELoss()
-        self.num_epochs = 5000
+        self.num_epochs = 3000
         self.non_neg_clipper = NonNegClipper()
         self.regr.apply(self.non_neg_clipper)
-        self.early_stopping_pct = 0.025 / 100
+        self.early_stopping_pct = 0.055 / 100
 
         return
 
@@ -182,7 +182,7 @@ class NeuralNetworkRegression(GenericRegressor):
         y = torch.from_numpy(y)  # torch.tensor(y, dtype=torch.float32)
 
         optimizer = torch.optim.Adam(self.regr.parameters(), lr=self.regr.learning_rate)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 500, 2 / 3)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 300, 3 / 4)
         initial_state_dict = scheduler.state_dict()
 
         self.y_min = torch.min(y)
@@ -210,24 +210,28 @@ class NeuralNetworkRegression(GenericRegressor):
             optimizer.step()
             self.regr.apply(self.non_neg_clipper)
             scheduler.step()
-            # optimizer.zero_grad()
             for param in self.regr.parameters():
                 param.grad = None
 
             # Check for plateau, if so: reset weights to try to find other minima
             if last_loss != None and epoch > self.num_epochs * 0.2:
-                pct = (last_loss - loss_val) / abs(loss_val)
-                if pct < self.early_stopping_pct and current_patience > patience_lim:
+                pct_diff = (last_loss - loss_val) / ((last_loss + loss_val) / 2)
+                if (
+                    abs(pct_diff) < self.early_stopping_pct
+                    and current_patience > patience_lim
+                ):
 
                     # Store loss and params if the loss is best
                     if best_loss == None:
                         best_loss = loss_val
                         best_params = self.regr.state_dict()
                     elif loss_val < best_loss:
+                        print("\t-> Found better params!!")
                         best_loss = loss_val
                         best_params = self.regr.state_dict()
 
                     # Reset model weights
+                    print("resetting weights!", epoch)
                     current_patience = 0
                     scheduler.load_state_dict(initial_state_dict)
                     last_loss = None

@@ -67,6 +67,7 @@ def process_chromosome(
 
     best_params = param_grid[0]
     best_scores = [-np.inf for _ in scorer]
+
     for params in param_grid:
 
         # initialize the cv_predictions
