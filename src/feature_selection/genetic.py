@@ -343,4 +343,12 @@ class GeneticSelection(GenericFeatureSelector):
                 randint(1, self.max_chromosome_number) | self.forced_chromosome_number
             )
 
+        # dont allow chromosomes that we've already seen
+        for i in range(len(self.current_chromosomes)):
+            while self.current_chromosomes[i] in self.chromosome_scoring_table.keys():
+                self.current_chromosomes[i] = (
+                    randint(1, self.max_chromosome_number)
+                    | self.forced_chromosome_number
+                )
+
         return self.current_chromosomes

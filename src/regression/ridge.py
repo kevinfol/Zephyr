@@ -58,7 +58,7 @@ class RidgeRegression(GenericRegressor):
             return True
         return False
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+    def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> None:
         """Compute the model coefficients and intercept that minimize the
         least squares error.
 

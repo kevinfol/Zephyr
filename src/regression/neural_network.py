@@ -17,7 +17,7 @@ from onnx import numpy_helper, TensorProto, GraphProto, load
 
 
 class NeuralNet(torch.nn.Module):
-    def __init__(self, n_features: int, num_hidden_layers: int, activation_fn="ReLU"):
+    def __init__(self, n_features: int, num_hidden_layers: int, activation_fn="Mish"):
         super().__init__()
         self.n_features = n_features
         self.num_hidden_layers = num_hidden_layers
@@ -31,8 +31,6 @@ class NeuralNet(torch.nn.Module):
             torch.nn.Linear(n_features, hidden_layer_size),
             self.activation_fn(),
         ]
-        # layers[0].weight.data.fill_(1)
-        # layers[0].bias.data.fill_(0.01)
 
         for n in range(1, num_hidden_layers + 1):
             if n == num_hidden_layers:
@@ -41,8 +39,6 @@ class NeuralNet(torch.nn.Module):
                         torch.nn.Linear(hidden_layer_size, 1),
                     ]
                 )
-                # layers[-1].weight.data.fill_(1)
-                # layers[-1].bias.data.fill_(0.01)
             else:
                 layers.extend(
                     [
@@ -50,10 +46,9 @@ class NeuralNet(torch.nn.Module):
                         self.activation_fn(),
                     ]
                 )
-                # layers[-2].weight.data.fill_(1)
-                # layers[-2].bias.data.fill_(0.01)
 
         self.linear_stack = torch.nn.Sequential(*layers)
+        self.linear_stack.apply(self.init_module_weights)
 
     def get_params(self, *args, **kwargs):
 
@@ -127,7 +122,7 @@ class NeuralNetworkRegression(GenericRegressor):
         "learning_rate": [0.1],  # , 0.02],
         "activation_fn": ["Mish", "Hardsigmoid"],
     }
-    # USE_PARALLEL_PROCESSING = True
+    USE_PARALLEL_PROCESSING = True
 
     def __init__(self, *args, **kwargs):
         """_summary_"""
@@ -139,7 +134,7 @@ class NeuralNetworkRegression(GenericRegressor):
         self.num_epochs = 3000
         self.non_neg_clipper = NonNegClipper()
         self.regr.apply(self.non_neg_clipper)
-        self.early_stopping_pct = 0.055 / 100
+        self.early_stopping_pct = 0.025 / 100
 
         return
 
@@ -170,7 +165,9 @@ class NeuralNetworkRegression(GenericRegressor):
                 return True
         return False
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+    def fit(
+        self, X: np.ndarray, y: np.ndarray, train_mode: bool = False, **kwargs
+    ) -> None:
         """Create the model parameters for the brute force model lookup table.
 
         Args:
@@ -200,7 +197,8 @@ class NeuralNetworkRegression(GenericRegressor):
         patience_lim = self.num_epochs * 0.05
         current_patience = 0
 
-        for epoch in range(self.num_epochs):
+        total_epochs = int(self.num_epochs - (self.num_epochs * int(train_mode) / 2))
+        for epoch in range(total_epochs):
 
             predictions = self.regr(X)
             loss = self.loss_function(predictions, self.y_proc)
@@ -214,7 +212,7 @@ class NeuralNetworkRegression(GenericRegressor):
                 param.grad = None
 
             # Check for plateau, if so: reset weights to try to find other minima
-            if last_loss != None and epoch > self.num_epochs * 0.2:
+            if last_loss != None and epoch > total_epochs * 0.2:
                 pct_diff = (last_loss - loss_val) / ((last_loss + loss_val) / 2)
                 if (
                     abs(pct_diff) < self.early_stopping_pct
@@ -226,12 +224,12 @@ class NeuralNetworkRegression(GenericRegressor):
                         best_loss = loss_val
                         best_params = self.regr.state_dict()
                     elif loss_val < best_loss:
-                        print("\t-> Found better params!!")
+                        # print("\t-> Found better params!!")
                         best_loss = loss_val
                         best_params = self.regr.state_dict()
 
                     # Reset model weights
-                    print("resetting weights!", epoch)
+                    # print("resetting weights!", epoch)
                     current_patience = 0
                     scheduler.load_state_dict(initial_state_dict)
                     last_loss = None

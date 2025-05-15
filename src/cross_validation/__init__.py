@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import random
 
 
 def k_fold(num_samples: int, num_folds: int = 5) -> list[list, list]:
@@ -32,6 +33,9 @@ def k_fold(num_samples: int, num_folds: int = 5) -> list[list, list]:
 
     # List of available indices
     available_indices = list(range(num_samples))
+
+    # shuffle indices
+    random.shuffle(available_indices)
 
     # create the train/test samples
     output = []

@@ -319,22 +319,18 @@ def process_pipeline(
             proc_func = partial(
                 model_evaluation.process_chromosome,
                 pipeline_obj=pipeline_obj,
-                feature_selector=feature_selector,
                 regressor=regressor,
                 preprocessor=preprocessor,
                 cross_validator=cross_validator,
                 scorer=scorer,
-                cv_results_table=cv_results_table,
-                hyperparameters_table=hyperparameters_table,
                 input_data=input_data,
                 X=X,
                 y=y,
                 years=y,
             )
 
-            for chromosome, (best_scores, best_params, cv_results) in zip(
-                chromosome_batch,
-                executor.map(proc_func, chromosome_batch),
+            for chromosome, best_scores, best_params, cv_results in executor.map(
+                proc_func, chromosome_batch
             ):
                 batch_scores.append(best_scores)
                 hyperparameters_table[chromosome] = best_params
@@ -462,7 +458,6 @@ def process_pipeline(
 
         # save the json data
         # Store model info to the output json
-        print(hyperparameters)
         json_output_data[f"model_{n}_info"] = {
             "hyperparameters": hyperparameters,
             "cv_predictions": cv_predictions.astype(np.float64).tolist(),
@@ -473,7 +468,9 @@ def process_pipeline(
             "scores": scores,
             "onnx": onnx_filename,
         }
-        print(json_output_data[f"model_{n}_info"])
+        print(json_output_data[f"model_{n}_info"]["hyperparameters"])
+        print(json_output_data[f"model_{n}_info"]["scores"])
+        print()
         with open(output_dir_path + "/output.json", "w") as output_json_file:
             output_json_file.write(json.dumps(json_output_data, indent=2))
 

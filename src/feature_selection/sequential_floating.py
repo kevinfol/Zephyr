@@ -64,7 +64,6 @@ class SequentialFloatingSelection(GenericFeatureSelector):
 
         # Seeded?
         self.is_seeded = False
-        self.seeds_used = 0
 
         return
 
@@ -84,9 +83,9 @@ class SequentialFloatingSelection(GenericFeatureSelector):
         if time.time() - self.clock_start_time > self.stopping_time:
             return False
 
-        # Check if we've seen all the possible chromosomes (or 98% of them to catch any weird little bugs.)
+        # Check if we've seen all the possible chromosomes (or 90% of them to catch any weird little bugs.)
         self.num_evaluated = len(self.chromosome_scoring_table.keys())
-        if self.num_evaluated >= 0.98 * self.max_number_of_chromos:
+        if self.num_evaluated >= 0.90 * self.max_number_of_chromos:
             return False
 
         return True
@@ -133,10 +132,9 @@ class SequentialFloatingSelection(GenericFeatureSelector):
         sorted_scores = sorted(self.scores, reverse=True)
         best_score_idx = self.scores.index(sorted_scores[0])
         if best_score_idx == 0:
-            if self.is_seeded and self.seeds_used < len(self.seeds):
+            if self.is_seeded and len(self.seeds) > 0:
                 self.starting_chromosome = choice(self.seeds)
                 self.seeds.pop(self.seeds.index(self.starting_chromosome))
-                self.seeds_used += 1
             else:
                 self.starting_chromosome = (
                     randint(1, self.max_chromosome_number)
@@ -172,5 +170,13 @@ class SequentialFloatingSelection(GenericFeatureSelector):
             self.current_chromosomes[self.current_chromosomes.index(0)] = (
                 randint(1, self.max_chromosome_number) | self.forced_chromosome_number
             )
+
+        # dont allow chromosomes that we've already seen
+        for i in range(len(self.current_chromosomes)):
+            while self.current_chromosomes[i] in self.chromosome_scoring_table.keys():
+                self.current_chromosomes[i] = (
+                    randint(1, self.max_chromosome_number)
+                    | self.forced_chromosome_number
+                )
 
         return self.current_chromosomes

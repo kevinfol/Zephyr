@@ -8,13 +8,10 @@ from src import scoring
 def process_chromosome(
     chromosome: int,
     pipeline_obj: dict,
-    feature_selector: object,
     regressor: object,
     preprocessor: object,
     cross_validator: callable,
     scorer: list[callable],
-    cv_results_table: dict,
-    hyperparameters_table: dict,
     input_data: InputData,
     X: np.ndarray,
     y: np.ndarray,
@@ -25,18 +22,6 @@ def process_chromosome(
     regressor = copy.deepcopy(regressor)
     preprocessor = copy.deepcopy(preprocessor)
     cross_validator = copy.deepcopy(cross_validator)
-
-    # Check if we already know the score for this chromosome (if so, skip)
-    if chromosome in feature_selector.chromosome_scoring_table.keys():
-        # batch_scores.append(
-        #     feature_selector.chromosome_scoring_table[chromosome]
-        # )
-        # continue
-        return (
-            feature_selector.chromosome_scoring_table[chromosome],
-            hyperparameters_table[chromosome],
-            cv_results_table[chromosome],
-        )
 
     # Create the input feature data
     concat_list = []
@@ -128,7 +113,7 @@ def process_chromosome(
                 )
 
                 # Fit the model
-                regressor.fit(X_train_preprocessed, y_train)
+                regressor.fit(X_train_preprocessed, y_train, train_mode=True)
 
                 # Make the cv_predictions
                 cv_observations[test_set] = y_test
@@ -159,4 +144,4 @@ def process_chromosome(
 
     # save the best parameters for lookup later.
     # hyperparameters_table[chromosome] = best_params
-    return best_scores, best_params, cv_results
+    return chromosome, best_scores, best_params, cv_results
