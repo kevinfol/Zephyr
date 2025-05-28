@@ -29,6 +29,7 @@ from .ransac import RansacRegression
 from .neural_network import NeuralNetworkRegression
 from .support_vector import SupportVectorRegression
 from .quantile import QuantileRegression
+from .quantile_neural_network import QuantileNeuralNetworkRegression
 
 
 def get(regr_name: str) -> object:
@@ -59,3 +60,5 @@ def get(regr_name: str) -> object:
         return SupportVectorRegression
     if regr_name == "quantile":
         return QuantileRegression
+    if regr_name == "quantile_neural_network":
+        return QuantileNeuralNetworkRegression

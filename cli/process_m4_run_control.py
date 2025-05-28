@@ -65,10 +65,25 @@ def process_m4(
             "num_output_models": 1,
             "pc_num_components": run_control["features"].getint("MaxModes"),
         },
+        # Quantile Regression (not monotonic by default)
+        {
+            "regression_algorithm": "quantile",
+            "monotonic": False,
+            "feature_selection": "genetic" if use_genetic_algorithm else "brute_force",
+            "genetic_pop_size": ga_pop_size,
+            "genetic_generations": ga_generations,
+            "forced_features": forced_features,
+            "preprocessing": "principal_components",
+            "scoring": "d2_rmse",
+            "exclude_years": [],
+            "num_output_models": 1,
+            "pc_num_components": run_control["features"].getint("MaxModes"),
+        },
         # Random Forest Regression (not monotonic by default)
         {
             "regression_algorithm": "random_forest",
             "monotonic": False,
+            "stopping_time": 300,
             "feature_selection": "genetic" if use_genetic_algorithm else "brute_force",
             "genetic_pop_size": ga_pop_size,
             "genetic_generations": ga_generations,
@@ -97,6 +112,7 @@ def process_m4(
         {
             "regression_algorithm": "neural_network",
             "monotonic": True,
+            "stopping_time": 300,
             "feature_selection": "genetic" if use_genetic_algorithm else "brute_force",
             "genetic_pop_size": ga_pop_size,
             "genetic_generations": ga_generations,
@@ -107,8 +123,30 @@ def process_m4(
             "num_output_models": 1,
             "pc_num_components": run_control["features"].getint("MaxModes"),
         },
+        # Monotonic Neural Network (monotonic)
+        {
+            "regression_algorithm": "quantile_neural_network",
+            "monotonic": True,
+            "feature_selection": "genetic" if use_genetic_algorithm else "brute_force",
+            "genetic_pop_size": ga_pop_size,
+            "stopping_time": 300,
+            "genetic_generations": ga_generations,
+            "forced_features": forced_features,
+            "preprocessing": "principal_components",
+            "scoring": "d2_rmse",
+            "exclude_years": [],
+            "num_output_models": 1,
+            "pc_num_components": run_control["features"].getint("MaxModes"),
+        },
     ]
 
+    for i, pipeline in enumerate(pipelines):
+        process_pipeline(
+            pipeline_obj=pipeline,
+            input_data=input_data,
+            output_dir_path=output_dir,
+            clear_output_dir=True if i == 0 else False,
+        )
     return
 
 

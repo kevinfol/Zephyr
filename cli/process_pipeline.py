@@ -471,7 +471,9 @@ def process_pipeline(
         print(json_output_data[f"model_{n}_info"]["hyperparameters"])
         print(json_output_data[f"model_{n}_info"]["scores"])
         print()
-        with open(output_dir_path + "/output.json", "w") as output_json_file:
+        with open(
+            output_dir_path + f"/output_{str(uuid4())}.json", "w"
+        ) as output_json_file:
             output_json_file.write(json.dumps(json_output_data, indent=2))
 
         print(
