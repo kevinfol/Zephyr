@@ -110,6 +110,23 @@
                 "-o", "${workspaceFolder}/examples/example_1/output",
                 "-c"
             ]
+        },
+        {
+            "name": "DEBUG: process_pipeline_docs",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "cli\\process_pipeline.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "Path": "${env:Path};${workspaceFolder}\\src"
+            },
+            "args": [
+                "${workspaceFolder}/pipeline.json",
+                "${workspaceFolder}/input_data.csv",
+                "-o", "${workspaceFolder}/output_folder",
+                "-c"
+            ]
         }
     ]
 }

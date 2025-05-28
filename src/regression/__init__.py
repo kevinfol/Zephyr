@@ -27,6 +27,8 @@ from .ridge import RidgeRegression
 from .random_forest import RandomForestRegression
 from .ransac import RansacRegression
 from .neural_network import NeuralNetworkRegression
+from .support_vector import SupportVectorRegression
+from .quantile import QuantileRegression
 
 
 def get(regr_name: str) -> object:
@@ -53,3 +55,7 @@ def get(regr_name: str) -> object:
         return RansacRegression
     if regr_name == "neural_network":
         return NeuralNetworkRegression
+    if regr_name == "support_vector":
+        return SupportVectorRegression
+    if regr_name == "quantile":
+        return QuantileRegression

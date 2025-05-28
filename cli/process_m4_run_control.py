@@ -1,4 +1,7 @@
 import argparse
+import sys, os
+
+sys.path.append(os.getcwd())
 from src import data_parsing
 from cli import process_pipeline
 
@@ -77,7 +80,33 @@ def process_m4(
             "pc_num_components": run_control["features"].getint("MaxModes"),
         },
         # Support Vector Machine (not monotonic by default)
+        {
+            "regression_algorithm": "support_vector",
+            "monotonic": False,
+            "feature_selection": "genetic" if use_genetic_algorithm else "brute_force",
+            "genetic_pop_size": ga_pop_size,
+            "genetic_generations": ga_generations,
+            "forced_features": forced_features,
+            "preprocessing": "principal_components",
+            "scoring": "d2_rmse",
+            "exclude_years": [],
+            "num_output_models": 1,
+            "pc_num_components": run_control["features"].getint("MaxModes"),
+        },
         # Monotonic Neural Network (monotonic)
+        {
+            "regression_algorithm": "neural_network",
+            "monotonic": True,
+            "feature_selection": "genetic" if use_genetic_algorithm else "brute_force",
+            "genetic_pop_size": ga_pop_size,
+            "genetic_generations": ga_generations,
+            "forced_features": forced_features,
+            "preprocessing": "principal_components",
+            "scoring": "d2_rmse",
+            "exclude_years": [],
+            "num_output_models": 1,
+            "pc_num_components": run_control["features"].getint("MaxModes"),
+        },
     ]
 
     return

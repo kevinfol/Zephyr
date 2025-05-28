@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Meta info  -->
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <!-- Title and Favicon -->
+        <title>Zephyr Web Runtime</title>
+        <link rel="icon" type="image/png" href="./favicon.png">
+        <!-- Stylesheets -->
+        <link rel="stylesheet" href="./assets/css/fsa-style.min.css">
+        <link rel="stylesheet" href="./assets/css/ol.css">
+        <!-- Javascript (third-party)-->
+        <!-- Javascript (nwcc-code) -->
+    </head>
+    <body>
+        <!-- FPAC Header and Tophat -->
+        <div include="./html-modules/fpac-tophat.html"></div>
+        <!-- Application specific header -->
+        <div include="./html-modules/app-header.html"></div>
+        <!-- Application Splash screen -->
+        <div include="./html-modules/app-splash.html"></div>
+        <!-- Main Content Well -->
+        <div class="fsa-grid fsa-grid--no-gutter"></div>
+        <!-- Javascript -->
+        <script
+            id="inject-script"
+            src="./assets/js/injectHtml.js"
+            async="false"
+            defer="false"
+        ></script>
+    </body>
+</html>

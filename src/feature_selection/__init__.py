@@ -70,6 +70,10 @@ class GenericFeatureSelector:
             ][0]
         else:
             best_score = 0
+        if abs(best_score) == float("inf"):
+            best_score = 0
+        if best_score == float("nan"):
+            best_score = 0
 
         # Compute total length
         total_num = (2**self.num_features) - 1

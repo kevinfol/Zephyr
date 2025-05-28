@@ -66,7 +66,7 @@ class RandomForestRegression(GenericRegressor):
         return False
 
     def fit(self, X: np.ndarray, y: np.ndarray, **kwargs) -> None:
-        """Create the model parameters for the brute force model lookup table.
+        """Fit the model parameters.
 
         Args:
             X (np.ndarray): feature data of shape NxM

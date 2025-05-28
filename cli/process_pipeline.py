@@ -448,7 +448,7 @@ def process_pipeline(
         )
 
         # Save the individual model ONNX to the output directory
-        onnx_filename = output_dir_path + str(uuid4())[::2] + ".onnx"
+        onnx_filename = output_dir_path + "/" + str(uuid4())[::2] + ".onnx"
         with open(onnx_filename, "wb") as onnx_write_file:
             onnx_model = make_model(
                 model_graph,

@@ -35,6 +35,9 @@ def create_uncertainty_onnx_graph(
     # Compute the normal RMSE
     rmse = calc_rmse(predicted=predictions, observed=observations)
 
+    # Create a 1% to 99% t-table
+    t_table = [t.ppf(exc, df=deg_freedom) for exc in np.linspace(0.01, 0.99, 99)]
+
     # Check for negatives in observed or predictions
     # if there are negatives, the box-cox / log transforms wont work
     # and we should just stick to the normal formulation for uncertainty
@@ -48,14 +51,26 @@ def create_uncertainty_onnx_graph(
         boxcox_log_rmse = np.nan
     else:
         #  Compute the Box-Cox transformed RMSE
-        boxcox_predictions, boxcox_lambda = boxcox(x=predictions.astype(np.float64))
-        boxcox_observations = boxcox(
-            x=observations.astype(np.float64), lmbda=boxcox_lambda
-        )
-        boxcox_log_rmse = calc_rmse(
-            predicted=boxcox_predictions.astype(np.float32),
-            observed=boxcox_observations.astype(np.float32),
-        )
+        try:
+            boxcox_predictions, boxcox_lambda = boxcox(x=predictions.astype(np.float64))
+            boxcox_observations = boxcox(
+                x=observations.astype(np.float64), lmbda=boxcox_lambda
+            )
+            boxcox_log_rmse = calc_rmse(
+                predicted=boxcox_predictions.astype(np.float32),
+                observed=boxcox_observations.astype(np.float32),
+            )
+
+            # Check whether the min bc prediction will be nan
+            min_prediction = (boxcox_lambda * min(boxcox_predictions) + 1) ** (
+                1 / boxcox_lambda
+            )
+            if np.isnan(min_prediction):
+                boxcox_lambda = np.nan
+                boxcox_log_rmse = np.nan
+        except:
+            boxcox_lambda = np.nan
+            boxcox_log_rmse = np.nan
 
         # Check if we should do a log-transform instead of a BC transform
         if abs(boxcox_lambda) < 1e-3:
@@ -64,9 +79,6 @@ def create_uncertainty_onnx_graph(
             boxcox_log_rmse = calc_rmse(
                 predicted=log_predictions, observed=log_observations
             )
-
-    # Create a 1% to 99% t-table
-    t_table = [t.ppf(exc, df=deg_freedom) for exc in np.linspace(0.01, 0.99, 99)]
 
     # Initialize the ONNX Pipeline
     bc_nodes = []

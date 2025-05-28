@@ -1,5 +1,6 @@
 import numpy as np
 import json
+import csv
 from argparse import FileType
 from onnx import TensorProto, GraphProto
 from onnx.helper import make_graph, make_tensor_value_info
@@ -21,9 +22,24 @@ class InputData:
         # store filename
         self.filename = file.name
 
+        # Find the delimiter of the file
+        file.seek(0)
+        dialect = csv.Sniffer().sniff(file.read())
+        file.seek(0)
+
         # use genfromtxt to read the entire file as a field-ed array
-        entire_file = np.genfromtxt(file, names=True, deletechars="")
+        entire_file = np.genfromtxt(
+            file, names=True, deletechars="", delimiter=dialect.delimiter
+        )
         column_names = list(entire_file.dtype.names)
+
+        # Remove empty columns
+        keep_cols = []
+        for column in column_names:
+            if not np.all(np.isnan(entire_file[column])):
+                keep_cols.append(column)
+        entire_file = entire_file[keep_cols]
+        column_names = keep_cols
 
         # Get the names
         self.target_name = column_names[1]

@@ -1,0 +1,8 @@
+multipledispatch
+numpy
+scipy
+scikit-learn
+onnx==1.17.0
+skl2onnx==1.18.0 # this was default
+torch
+mkdocs

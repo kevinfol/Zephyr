@@ -1,20 +1,18 @@
 import numpy as np
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import QuantileRegressor
 from onnx.helper import make_node, make_tensor, make_tensor_value_info, make_graph
 from onnx import TensorProto, GraphProto, numpy_helper
 from . import GenericRegressor
 
 
-class RidgeRegression(GenericRegressor):
-    """Regressor that solves the classic Ordinary Least Squares problem
-    subject to monotonicity constraints and a L2-Norm regularization constraint.
-    The resulting model has 2 parameters (coef_ and intercept_).
-
-    see https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html
-    for more information
+class QuantileRegression(GenericRegressor):
     """
 
-    PARAM_GRID = {"alpha": [0.5, 1.0, 1.5]}
+    see https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.QuantileRegressor.html
+    for more information.
+    """
+
+    PARAM_GRID = {"alpha": [0]}
 
     def __init__(self, *args, **kwargs) -> None:
         """Class initializer. By default there is no monotonicity."""
@@ -23,16 +21,12 @@ class RidgeRegression(GenericRegressor):
         self.monotonic = False
 
         # Regressor
-        self.regr = Ridge(
-            positive=self.monotonic,
-            solver="lbfgs" if self.monotonic else "auto",
-            tol=1e-3,
-        )
+        self.regr = QuantileRegressor(quantile=0.5)
 
         return
 
     def set_monotonic(self, monotone_constraints: list[bool]) -> None:
-        """_summary_
+        """Monotonicity is not supported for quantile regression.
 
         Args:
             monotone_constraints (list[bool]): a list with True/False elements,
@@ -40,10 +34,6 @@ class RidgeRegression(GenericRegressor):
                 should have a monotonic relationship with the target.
         """
         self.monotonic = any(monotone_constraints)
-        if self.monotonic:
-            self.regr.set_params(**{"positive": True, "solver": "lbfgs"})
-        else:
-            self.regr.set_params(**{"positive": False, "solver": "auto"})
 
     def has_zero_importance_predictors(self) -> bool:
         """If any of the predictors have zero importance / effect on the output
@@ -134,7 +124,7 @@ class RidgeRegression(GenericRegressor):
         # Make graph
         graph = make_graph(
             nodes=nodes,
-            name="ridge_regression",
+            name="quantile_regression",
             inputs=inputs,
             outputs=outputs,
             initializer=constants,
